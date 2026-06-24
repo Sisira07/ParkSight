@@ -1,0 +1,173 @@
+# ParkSight AI — Pipeline Configuration
+# All tuneable constants live here. Do not put secrets here.
+
+# ── Spatial / clustering ──────────────────────────────────────────────────
+spatial:
+  lat_km_per_deg: 111.0
+  lon_km_per_deg_fallback: 108.5   # ~111.32 * cos(13°), used only before mean lat is known
+  cbd_lat: 12.975
+  cbd_lon: 77.577
+
+dbscan:
+  eps_km: 0.5
+  min_samples: 2
+  jitter_std_km: 0.03
+  jitter_trials: 15
+
+hotspots:
+  min_junction_violations: 100      # minimum approved violations for a junction to qualify
+  min_nonjunction_violations: 30    # minimum for hex-grid non-junction cells
+
+# ── Temporal ──────────────────────────────────────────────────────────────
+temporal:
+  ist_offset_hours: 5.5
+  peak_hours_ist: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]  # ~07:30-17:30 IST (business hours)
+  peak_hours_note: >
+    Daytime/business-hours window chosen for this analysis.
+    NOT a traffic-engineering peak-hour definition; excludes the evening commute (~17:00-20:00 IST).
+  min_rows_per_month_for_date_check: 5
+
+# ── Risk scoring ──────────────────────────────────────────────────────────
+risk_scoring:
+  weights:
+    violation_count: 0.55
+    at_junction_pct: 0.25
+    vehicle_severity: 0.10
+    peak_hour_pct: 0.10
+  tier_thresholds_percentile:
+    critical: 85
+    high: 60
+    medium: 25
+
+# ── Bootstrap CI ─────────────────────────────────────────────────────────
+bootstrap:
+  n_iterations: 300
+  min_member_rows: 5   # clusters with fewer rows use a point estimate
+
+# ── Multi-jurisdiction ────────────────────────────────────────────────────
+jurisdiction:
+  share_threshold: 0.10   # secondary station flagged if its share >= this
+
+# ── Patrol optimization (MILP) ────────────────────────────────────────────
+patrol:
+  default_teams: 10
+  shifts:
+    - "Dawn 02-07 IST"
+    - "Morning 07-12 IST"
+    - "Afternoon 12-19 IST"
+    - "Evening 19-02 IST"
+  critical_soft_bonus: 10.0   # objective bonus when soft-relaxation is needed
+  solver_time_limit_s: 20.0
+
+# ── Vehicle severity weights ──────────────────────────────────────────────
+vehicle_weights:
+  CAR: 0.55
+  SCOOTER: 0.40
+  "MOTOR CYCLE": 0.38
+  "PASSENGER AUTO": 0.45
+  "MAXI-CAB": 0.52
+  MOPED: 0.25
+  "GOODS AUTO": 0.42
+  JEEP: 0.50
+  VAN: 0.58
+  TEMPO: 0.62
+  LGV: 0.72
+  "MINI LORRY": 0.75
+  "SCHOOL VEHICLE": 0.60
+  "TOURIST BUS": 0.78
+  "FACTORY BUS": 0.75
+  TRACTOR: 0.65
+  "PRIVATE BUS": 0.85
+  "BUS (BMTC/KSRTC)": 0.82
+  "LORRY/GOODS VEHICLE": 0.80
+  HGV: 0.88
+  TANKER: 0.92
+  OTHERS: 0.40
+
+# ── Economic model (all MODELED — not measured) ───────────────────────────
+economic:
+  fuel_cost_per_litre: 103.0
+  fuel_burn_idle_litres_per_hour: 0.8
+  avg_vehicles_per_km: 800
+  co2_per_litre_fuel: 2.31
+  avg_wage_inr_per_hour: 120.0
+  working_days_per_year: 300
+  sensitivity_scenarios:
+    Pessimistic: 0.70
+    Base: 1.00
+    Optimistic: 1.30
+
+# ── Road capacity (IRC:106-2010 / HCM 2000) ──────────────────────────────
+road_capacity:
+  reporting_days: 141   # Nov 2023 – Mar 2024 raw CSV date range
+  corridor_length_km: 0.5
+  vd_saturation: 15.0   # violations/lane-km/day that triggers max obstruction loss
+  junction_capacity_loss_per_junction: 0.05
+  max_junction_capacity_loss: 0.20
+  junction_search_radius_km: 0.5
+  probe_offset_deg: 0.005
+  n_spearman_bootstrap: 1000
+  bpr_alpha: 0.15
+  bpr_beta: 4.0
+  assumed_freeflow_speed_kmph: 40.0
+  simultaneous_parked_vehicle_fraction: 0.15  # fraction of daily violations present at peak hour
+  width_reduction_per_vehicle_m: 1.8
+
+  base_capacity_veh_hr_per_dir:
+    arterial_major: 1800
+    arterial_minor: 1600
+    collector: 1400
+    local: 1000
+
+  lane_factor:
+    1: 1.00
+    2: 1.80
+    3: 2.50
+    4: 3.10
+    5: 3.65
+    6: 4.10
+
+  max_obstruction_loss:
+    arterial_major: 0.28
+    arterial_minor: 0.33
+    collector: 0.38
+    local: 0.45
+
+  priority_weights:
+    violation_severity: 0.40
+    capacity_loss: 0.30
+    traffic_delay: 0.20
+    spatial_stability: 0.10
+
+# ── Traffic API probing ───────────────────────────────────────────────────
+traffic:
+  probe_offset_deg: 0.01       # ~1.1 km probe corridor
+  n_directions: 8
+  min_directions_for_real_label: 2
+  route_distance_mismatch_tolerance: 0.03
+  cache_ttl_seconds: 21600     # 6 hours
+  request_timeout_seconds: 10
+  max_retries: 3
+  retry_backoff_seconds: 1.5
+  temporal_slots:
+    - ["Morning Peak", 8]
+    - ["Midday", 13]
+    - ["Evening Peak", 18]
+    - ["Night", 22]
+
+# ── District bounds (synthetic grid — NOT real administrative boundaries) ─
+district_methodology_note: >
+  Districts are a synthetic rectangular lat/lon grid for analysis bucketing only
+  — they do NOT correspond to real Bengaluru police-zone or ward boundaries.
+
+districts:
+  - [13.05, 13.30, 77.44, 77.78, "North Bengaluru"]
+  - [12.98, 13.05, 77.44, 77.56, "Northwest Bengaluru"]
+  - [12.98, 13.05, 77.56, 77.65, "Central-North Bengaluru"]
+  - [12.98, 13.05, 77.65, 77.78, "Northeast Bengaluru"]
+  - [12.94, 12.98, 77.44, 77.55, "West Bengaluru"]
+  - [12.94, 12.98, 77.55, 77.65, "Central Bengaluru"]
+  - [12.94, 12.98, 77.65, 77.78, "East Bengaluru"]
+  - [12.80, 12.94, 77.44, 77.57, "Southwest Bengaluru"]
+  - [12.80, 12.94, 77.57, 77.63, "South Bengaluru"]
+  - [12.80, 12.94, 77.63, 77.78, "Southeast Bengaluru"]
