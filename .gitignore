@@ -29,5 +29,6 @@ outputs/*
 !outputs/.gitkeep
 !outputs/README.md
 
+data/raw/violations.csv
 data/processed/*
 !data/processed/.gitkeep
