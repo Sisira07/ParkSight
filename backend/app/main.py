@@ -8,6 +8,9 @@ Run with:
 from __future__ import annotations
 
 import logging
+import math
+import json
+
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,10 +28,23 @@ from .services.artifact_loader import ArtifactError
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("parksight.api")
 
+class SafeJSONResponse(JSONResponse):
+    def render(self, content) -> bytes:
+        def sanitize(obj):
+            if isinstance(obj, float) and not math.isfinite(obj):
+                return None
+            if isinstance(obj, dict):
+                return {k: sanitize(v) for k, v in obj.items()}
+            if isinstance(obj, list):
+                return [sanitize(v) for v in obj]
+            return obj
+        return json.dumps(sanitize(content)).encode("utf-8")
+
 app = FastAPI(
     title="ParkSight AI API",
     description="Backend integration layer serving real ParkSight pipeline outputs to the React dashboard.",
     version="1.0.0",
+    default_response_class=SafeJSONResponse,
 )
 
 app.add_middleware(
