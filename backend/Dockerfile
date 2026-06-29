@@ -1,11 +1,3 @@
-# ParkSight AI — backend image.
-# Build context must be the REPO ROOT (not backend/), because the image
-# also needs the sibling `parksight` package and `config/settings.yaml`.
-#
-#   docker build -f backend/Dockerfile -t parksight-backend .
-#
-# (docker-compose.yml at the repo root does this automatically.)
-
 FROM python:3.11-slim
 
 WORKDIR /srv
@@ -26,8 +18,11 @@ RUN pip install --no-cache-dir -r /srv/backend/requirements.txt
 
 COPY backend/app /srv/backend/app
 COPY config /srv/config
-COPY outputs /srv/outputs
 COPY data /srv/data
+
+# Run the analytics pipeline at build time so /srv/outputs always
+# reflects the data + config baked into this image.
+RUN parksight --input data/raw/violations.csv --output outputs
 
 WORKDIR /srv/backend
 ENV PARKSIGHT_OUTPUT_DIR=/srv/outputs \
