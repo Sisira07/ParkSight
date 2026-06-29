@@ -22,7 +22,9 @@ COPY data /srv/data
 
 # Run the analytics pipeline at build time so /srv/outputs always
 # reflects the data + config baked into this image.
-RUN parksight --input data/raw/violations.csv --output outputs
+COPY data/raw/violations.csv.gz data/raw/
+RUN gunzip data/raw/violations.csv.gz && \
+    parksight --input data/raw/violations.csv --output outputs
 
 WORKDIR /srv/backend
 ENV PARKSIGHT_OUTPUT_DIR=/srv/outputs \

@@ -32,3 +32,5 @@ outputs/*
 data/raw/violations.csv
 data/processed/*
 !data/processed/.gitkeep
+
+data/raw/violations.csv
