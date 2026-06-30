@@ -3,6 +3,8 @@
 **ParkSight AI detects illegal parking hotspots, validates their stability, enriches them with traffic and road-capacity intelligence, and recommends evidence-tagged enforcement priorities.**
 
 **[Click here](https://park-sight-iota.vercel.app/) for Live Demo!**
+
+
 ---
 
 ## Problem Statement
